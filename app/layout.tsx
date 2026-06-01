@@ -1,5 +1,4 @@
 import type { Metadata } from "next"
-import "./globals.css"
 
 export const metadata: Metadata = {
   title: "Responsify HR",
@@ -13,6 +12,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <style>{`
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        `}</style>
+      </head>
       <body>{children}</body>
     </html>
   )
