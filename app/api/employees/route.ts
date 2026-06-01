@@ -9,7 +9,6 @@ export async function GET() {
     })
     return NextResponse.json(employees)
   } catch (error) {
-    console.error('GET error:', error)
     return NextResponse.json(
       { error: 'Failed to fetch employees' },
       { status: 500 }
@@ -19,12 +18,13 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email } = await req.json()
+    const { name, email, managerEmail } = await req.json()
 
     const employee = await prisma.employee.create({
       data: {
         name,
         email,
+        managerEmail,
         responsibilityScore: 50,
       },
       include: { reasonLogs: true },
