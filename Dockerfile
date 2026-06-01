@@ -13,8 +13,11 @@ ARG NEXT_PUBLIC_APP_ENV=production
 ENV NEXT_PUBLIC_APP_ENV=$NEXT_PUBLIC_APP_ENV
 
 RUN npx prisma generate
+RUN npx prisma db push --skip-generate
 RUN npm run build
 
 EXPOSE 3000
 
 CMD ["npm", "start"]
+
+
