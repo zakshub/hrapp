@@ -9,6 +9,7 @@ export async function GET() {
     })
     return NextResponse.json(employees)
   } catch (error) {
+    console.error('GET error:', error)
     return NextResponse.json(
       { error: 'Failed to fetch employees' },
       { status: 500 }
@@ -26,10 +27,12 @@ export async function POST(req: NextRequest) {
         email,
         responsibilityScore: 50,
       },
+      include: { reasonLogs: true },
     })
 
     return NextResponse.json(employee, { status: 201 })
   } catch (error) {
+    console.error('POST error:', error)
     return NextResponse.json(
       { error: 'Failed to create employee' },
       { status: 500 }
