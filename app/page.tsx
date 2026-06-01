@@ -24,6 +24,7 @@ interface Employee {
   id: number
   name: string
   email: string
+  managerEmail?: string
   responsibilityScore: number
   createdAt: string
   reasonLogs: ReasonLog[]
@@ -51,9 +52,10 @@ export default function Home() {
   const [riskData, setRiskData] = useState<RiskAssessment | null>(null)
   const [rules, setRules] = useState<SLARule[]>([])
   const [loading, setLoading] = useState(true)
-  const [newEmployee, setNewEmployee] = useState({ name: '', email: '' })
+  const [newEmployee, setNewEmployee] = useState({ name: '', email: '', managerEmail: '' })
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [adjusting, setAdjusting] = useState<number | null>(null)
+  const [sendingAlert, setSendingAlert] = useState<number | null>(null)
   const [adjustForm, setAdjustForm] = useState({
     scoreChange: 0,
     reason: '',
@@ -100,7 +102,7 @@ export default function Home() {
   const addEmployee = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newEmployee.name.trim() || !newEmployee.email.trim()) {
-      alert('Please fill all fields')
+      alert('Please fill name and email')
       return
     }
 
@@ -113,7 +115,7 @@ export default function Home() {
 
       if (res.ok) {
         await fetchAll()
-        setNewEmployee({ name: '', email: '' })
+        setNewEmployee({ name: '', email: '', managerEmail: '' })
       }
     } catch (error) {
       console.error('Add error:', error)
@@ -140,6 +142,31 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Adjust error:', error)
+    }
+  }
+
+  const sendAlert = async (employeeId: number) => {
+    try {
+      setSendingAlert(employeeId)
+      const res = await fetch('/api/send-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employeeId }),
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        alert('✅ Alert email sent successfully!')
+        await fetchAll()
+      } else {
+        alert(`❌ Error: ${data.error}`)
+      }
+    } catch (error) {
+      console.error('Send alert error:', error)
+      alert('Failed to send alert')
+    } finally {
+      setSendingAlert(null)
     }
   }
 
@@ -233,7 +260,7 @@ export default function Home() {
       </div>
 
       {/* TABS */}
-      <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem' }}>
+      <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
         <button style={tabButtonStyle(tab === 'employees')} onClick={() => setTab('employees')}>
           👥 Employees
         </button>
@@ -253,7 +280,7 @@ export default function Home() {
           <div style={cardStyle}>
             <h2 style={{ marginBottom: '1rem' }}>➕ Add Employee</h2>
             <form onSubmit={addEmployee}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <input
                   type="text"
                   placeholder="Name"
@@ -266,6 +293,13 @@ export default function Home() {
                   placeholder="Email"
                   value={newEmployee.email}
                   onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })}
+                  style={inputStyle}
+                />
+                <input
+                  type="email"
+                  placeholder="Manager Email"
+                  value={newEmployee.managerEmail}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, managerEmail: e.target.value })}
                   style={inputStyle}
                 />
               </div>
@@ -286,6 +320,9 @@ export default function Home() {
                   <div>
                     <div style={{ fontSize: '1.1rem', fontWeight: '600' }}>{emp.name}</div>
                     <div style={{ fontSize: '0.9rem', color: '#666' }}>{emp.email}</div>
+                    {emp.managerEmail && (
+                      <div style={{ fontSize: '0.85rem', color: '#999' }}>Manager: {emp.managerEmail}</div>
+                    )}
                   </div>
                   <div
                     style={{
@@ -425,13 +462,16 @@ export default function Home() {
               .filter((emp) => emp.riskLevel !== 'green')
               .map((emp) => (
                 <div key={emp.id} style={cardStyle}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', alignItems: 'center' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
                     <div>
                       <div style={{ fontSize: '1.1rem', fontWeight: '600' }}>{emp.name}</div>
                       <div style={{ fontSize: '0.9rem', color: '#666' }}>{emp.email}</div>
                       <div style={{ fontSize: '0.85rem', color: '#999', marginTop: '0.25rem' }}>
                         {emp.riskReason}
                       </div>
+                      {emp.managerEmail && (
+                        <div style={{ fontSize: '0.85rem', color: '#999' }}>Manager: {emp.managerEmail}</div>
+                      )}
                     </div>
                     <div
                       style={{
@@ -450,6 +490,20 @@ export default function Home() {
                       {emp.responsibilityScore}
                     </div>
                   </div>
+
+                  {/* Send Alert Button */}
+                  <button
+                    onClick={() => sendAlert(emp.id)}
+                    disabled={sendingAlert === emp.id}
+                    style={{
+                      ...buttonStyle,
+                      backgroundColor: '#f59e0b',
+                      opacity: sendingAlert === emp.id ? 0.5 : 1,
+                      cursor: sendingAlert === emp.id ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {sendingAlert === emp.id ? '📧 Sending...' : '📧 Send Alert Email'}
+                  </button>
 
                   {/* Escalations */}
                   {emp.escalations && emp.escalations.length > 0 && (
