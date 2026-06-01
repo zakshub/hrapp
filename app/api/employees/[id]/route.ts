@@ -6,30 +6,46 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { responsibilityScore, reason, description, reportedBy } =
-      await req.json()
+    const { scoreChange, reason, reportedBy } = await req.json()
+    const id = parseInt(params.id)
 
-    // Update employee score
-    const employee = await prisma.employee.update({
-      where: { id: parseInt(params.id) },
-      data: { responsibilityScore },
+    // Fetch current employee
+    const current = await prisma.employee.findUnique({
+      where: { id },
+      include: { reasonLogs: true },
     })
 
-    // Log the reason if provided
-    if (reason) {
+    if (!current) {
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
+    }
+
+    // Calculate new score (clamp 0-100)
+    let newScore = current.responsibilityScore + scoreChange
+    newScore = Math.max(0, Math.min(100, newScore))
+
+    // Update employee
+    const updated = await prisma.employee.update({
+      where: { id },
+      data: { responsibilityScore: newScore },
+      include: { reasonLogs: true },
+    })
+
+    // Log the reason (mandatory)
+    if (reason && reportedBy) {
       await prisma.reasonLog.create({
         data: {
-          employeeId: parseInt(params.id),
+          employeeId: id,
           reason,
-          description,
+          description: `Score changed from ${current.responsibilityScore} to ${newScore}`,
           reportedBy,
-          scoreImpact: responsibilityScore - (employee.responsibilityScore || 50),
+          scoreImpact: scoreChange,
         },
       })
     }
 
-    return NextResponse.json(employee)
+    return NextResponse.json(updated)
   } catch (error) {
+    console.error('PATCH error:', error)
     return NextResponse.json(
       { error: 'Failed to update employee' },
       { status: 500 }
