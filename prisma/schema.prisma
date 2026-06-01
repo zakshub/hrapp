@@ -2,7 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -17,24 +18,22 @@ model Employee {
   responsibilityScore   Int       @default(50) // 0-100
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
-  
-  // Relations
+
   reasonLogs            ReasonLog[]
-  
+
   @@map("employees")
 }
 
 model ReasonLog {
   id                    Int       @id @default(autoincrement())
   employeeId            Int
-  reason                String    // kya galti hui
-  description           String?   // details
-  reportedBy            String    // kaun ne report kiya
-  scoreImpact           Int       @default(-5) // score mein change
+  reason                String
+  description           String?
+  reportedBy            String
+  scoreImpact           Int       @default(-5)
   createdAt             DateTime  @default(now())
-  
-  // Relations
+
   employee              Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  
+
   @@map("reason_logs")
 }
